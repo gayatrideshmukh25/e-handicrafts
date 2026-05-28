@@ -1,103 +1,119 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { FiShoppingCart, FiHeart, FiUser, FiMenu, FiX, FiLogOut, FiPackage } from 'react-icons/fi';
+import {
+  FiSearch, FiShoppingCart, FiHeart, FiUser,
+  FiLogOut, FiPackage, FiGrid, FiChevronDown
+} from 'react-icons/fi';
 import { useAuth } from '../../context/AuthContext';
 import { useCart } from '../../context/CartContext';
 import './Navbar.css';
 
-const Navbar = () => {
-  const { user, logout, isAuthenticated } = useAuth();
+const CATS = ['Wood Crafts','Pottery','Jewellery','Decor','Textile'];
+
+export default function Navbar({ onSearch }) {
+  const { user, logout } = useAuth();
   const { cartCount } = useCart();
   const navigate = useNavigate();
-  const [menuOpen, setMenuOpen] = useState(false);
-  const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [query, setQuery] = useState('');
+  const [drop, setDrop] = useState(false);
+  const dropRef = useRef(null);
 
-  const handleLogout = () => {
-    logout();
-    navigate('/');
-    setDropdownOpen(false);
+  useEffect(() => {
+    const handler = (e) => { if (dropRef.current && !dropRef.current.contains(e.target)) setDrop(false); };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, []);
+
+  const handleSearch = (e) => {
+    e.preventDefault();
+    if (onSearch) onSearch(query);
+    else { navigate(`/?search=${encodeURIComponent(query)}`); }
   };
 
-  const getDashboardLink = () => {
+  const handleLogout = () => { logout(); navigate('/'); setDrop(false); };
+
+  const getDashLink = () => {
     if (user?.role === 'seller') return '/seller';
     if (user?.role === 'admin') return '/admin';
     return '/profile';
   };
 
   return (
-    <nav className="navbar">
-      <div className="navbar-container">
-        <Link to="/" className="navbar-logo">
-          <span className="logo-icon">✦</span>
-          <span className="logo-text">E-Handicrafts</span>
-        </Link>
+    <header>
+      <nav className="navbar">
+        <div className="nav-inner">
+          {/* Logo */}
+          <Link to="/" className="nav-logo">
+            <div className="nav-logo-mark">E</div>
+            <div className="nav-logo-text">E‑<span>Handicrafts</span></div>
+          </Link>
 
-        <div className={`navbar-links ${menuOpen ? 'open' : ''}`}>
-          <Link to="/" onClick={() => setMenuOpen(false)}>Home</Link>
-          <Link to="/?category=Wood Crafts" onClick={() => setMenuOpen(false)}>Wood</Link>
-          <Link to="/?category=Pottery" onClick={() => setMenuOpen(false)}>Pottery</Link>
-          <Link to="/?category=Jewellery" onClick={() => setMenuOpen(false)}>Jewellery</Link>
-          <Link to="/?category=Textile" onClick={() => setMenuOpen(false)}>Textile</Link>
-        </div>
+          {/* Search */}
+          <form className="nav-search" onSubmit={handleSearch}>
+            <input
+              type="text"
+              placeholder="Search for handmade products, crafts…"
+              value={query}
+              onChange={e => setQuery(e.target.value)}
+            />
+            <button type="submit" className="nav-search-btn"><FiSearch /></button>
+          </form>
 
-        <div className="navbar-actions">
-          {isAuthenticated && user?.role === 'buyer' && (
-            <>
-              <Link to="/wishlist" className="icon-btn" title="Wishlist">
-                <FiHeart />
-              </Link>
-              <Link to="/cart" className="icon-btn cart-btn" title="Cart">
-                <FiShoppingCart />
-                {cartCount > 0 && <span className="cart-badge">{cartCount}</span>}
-              </Link>
-            </>
-          )}
+          {/* Actions */}
+          <div className="nav-actions">
+            {user?.role === 'buyer' && (
+              <>
+                <Link to="/wishlist" className="nav-action-btn">
+                  <FiHeart />
+                  <span className="nav-action-label">Wishlist</span>
+                </Link>
+                <Link to="/cart" className="nav-action-btn">
+                  <FiShoppingCart />
+                  {cartCount > 0 && <span className="nav-cart-count">{cartCount > 99 ? '99+' : cartCount}</span>}
+                  <span className="nav-action-label">Cart</span>
+                </Link>
+              </>
+            )}
 
-          {isAuthenticated ? (
-            <div className="user-dropdown">
-              <button className="user-btn" onClick={() => setDropdownOpen(!dropdownOpen)}>
-                {user?.avatar ? (
-                  <img src={user.avatar} alt={user.name} className="user-avatar" />
-                ) : (
-                  <div className="user-initials">{user?.name?.[0]?.toUpperCase()}</div>
-                )}
-                <span className="user-name">{user?.name?.split(' ')[0]}</span>
-              </button>
-
-              {dropdownOpen && (
-                <div className="dropdown-menu">
-                  <div className="dropdown-header">
-                    <p className="dropdown-name">{user?.name}</p>
-                    <p className="dropdown-role">{user?.role}</p>
-                  </div>
-                  <Link to={getDashboardLink()} onClick={() => setDropdownOpen(false)}>
-                    <FiUser /> Dashboard
-                  </Link>
-                  {user?.role === 'buyer' && (
-                    <Link to="/orders" onClick={() => setDropdownOpen(false)}>
-                      <FiPackage /> My Orders
+            {user ? (
+              <div className="nav-user" ref={dropRef}>
+                <button className="nav-user-trigger" onClick={() => setDrop(!drop)}>
+                  <div className="nav-avatar">{user.name?.[0]?.toUpperCase()}</div>
+                  <span className="nav-user-name">{user.name?.split(' ')[0]}</span>
+                  <FiChevronDown style={{ fontSize: '0.8rem', color: 'var(--ink-4)' }} />
+                </button>
+                {drop && (
+                  <div className="nav-dropdown">
+                    <div className="nav-dropdown-head">
+                      <p>{user.name}</p>
+                      <span>{user.email}</span>
+                    </div>
+                    <Link to={getDashLink()} onClick={() => setDrop(false)}>
+                      <FiGrid /> Dashboard
                     </Link>
-                  )}
-                  <button onClick={handleLogout} className="logout-btn">
-                    <FiLogOut /> Logout
-                  </button>
-                </div>
-              )}
-            </div>
-          ) : (
-            <div className="auth-links">
-              <Link to="/login" className="btn btn-outline btn-sm">Login</Link>
-              <Link to="/register" className="btn btn-primary btn-sm">Register</Link>
-            </div>
-          )}
-
-          <button className="hamburger" onClick={() => setMenuOpen(!menuOpen)}>
-            {menuOpen ? <FiX /> : <FiMenu />}
-          </button>
+                    {user.role === 'buyer' && (
+                      <Link to="/orders" onClick={() => setDrop(false)}>
+                        <FiPackage /> My Orders
+                      </Link>
+                    )}
+                    <Link to="/profile" onClick={() => setDrop(false)}>
+                      <FiUser /> Profile
+                    </Link>
+                    <button onClick={handleLogout}>
+                      <FiLogOut /> Sign Out
+                    </button>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className="nav-auth">
+                <Link to="/login" className="btn btn-outline btn-sm">Sign In</Link>
+                <Link to="/register" className="btn btn-primary btn-sm">Register</Link>
+              </div>
+            )}
+          </div>
         </div>
-      </div>
-    </nav>
+      </nav>
+    </header>
   );
-};
-
-export default Navbar;
+}

@@ -25,6 +25,7 @@ const reviewSchema = new mongoose.Schema(
       maxlength: [500, "Comment cannot exceed 500 characters"],
     },
     sellerReply: { type: String, default: "" },
+    order: { type: mongoose.Schema.Types.ObjectId, ref: "Order" }, // the delivered order this review is for
   },
   { timestamps: true },
 );

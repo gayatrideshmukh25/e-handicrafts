@@ -26,6 +26,7 @@ app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
 // Routes
 app.use("/api/auth", require("./routes/authRoutes"));
+app.use("/api/payment", require("./routes/paymentRoutes"));
 app.use("/api/products", require("./routes/productRoutes"));
 app.use("/api/cart", require("./routes/cartRoutes"));
 app.use("/api/orders", require("./routes/orderRoutes"));
@@ -41,6 +42,7 @@ app.get("/api/health", (req, res) => {
 
 // Error handler
 app.use((err, req, res, next) => {
+  console.error("SERVER ERROR", err);
   const statusCode = err.statusCode || 500;
   res.status(statusCode).json({
     success: false,

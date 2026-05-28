@@ -8,8 +8,6 @@ const generateToken = (id) => {
   });
 };
 
-// @desc    Register user
-// @route   POST /api/auth/register
 const register = asyncHandler(async (req, res) => {
   const { name, email, password, role, sellerInfo } = req.body;
 
@@ -48,8 +46,6 @@ const register = asyncHandler(async (req, res) => {
   });
 });
 
-// @desc    Login user
-// @route   POST /api/auth/login
 const login = asyncHandler(async (req, res) => {
   const { email, password } = req.body;
 

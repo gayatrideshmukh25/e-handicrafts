@@ -62,6 +62,8 @@ const orderSchema = new mongoose.Schema(
         timestamp: { type: Date, default: Date.now },
       },
     ],
+    razorpayOrderId: { type: String, default: "" },
+    razorpayPaymentId: { type: String, default: "" },
     cancelledAt: Date,
     cancelReason: String,
     deliveredAt: Date,

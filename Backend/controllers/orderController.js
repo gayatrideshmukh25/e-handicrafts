@@ -7,6 +7,8 @@ const Product = require("../models/Product");
 // @route   POST /api/orders
 const placeOrder = asyncHandler(async (req, res) => {
   const { shippingAddress, paymentMethod } = req.body;
+  const normalizedPaymentMethod =
+    paymentMethod === "ONLINE" ? "Online" : paymentMethod;
 
   const cart = await Cart.findOne({ user: req.user._id }).populate(
     "items.product",
@@ -41,12 +43,15 @@ const placeOrder = asyncHandler(async (req, res) => {
   const totalAmount = cart.totalAmount;
   const deliveryCharge = totalAmount >= 500 ? 0 : 50;
   const grandTotal = totalAmount + deliveryCharge;
+  const paymentStatus =
+    normalizedPaymentMethod === "Online" ? "paid" : "pending";
 
   const order = await Order.create({
     user: req.user._id,
     items: orderItems,
     shippingAddress,
-    paymentMethod,
+    paymentMethod: normalizedPaymentMethod,
+    paymentStatus,
     totalAmount,
     deliveryCharge,
     grandTotal,

@@ -1,6 +1,12 @@
 import React, { useState, useEffect } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
-import { FiSearch, FiArrowRight } from "react-icons/fi";
+import { useNavigate, useSearchParams, Link } from "react-router-dom";
+import {
+  FiArrowRight,
+  FiShield,
+  FiTruck,
+  FiRefreshCw,
+  FiAward,
+} from "react-icons/fi";
 import Navbar from "../../components/common/Navbar";
 import ProductCard from "../../components/common/ProductCard";
 import {
@@ -12,27 +18,27 @@ import {
 import { useAuth } from "../../context/AuthContext";
 import "./Home.css";
 
-const CATEGORIES = [
-  "All",
-  "Wood Crafts",
-  "Pottery",
-  "Jewellery",
-  "Decor",
-  "Textile",
+const CATS = [
+  { label: "All", icon: "🏪" },
+  { label: "Wood Crafts", icon: "🪵" },
+  { label: "Pottery", icon: "🏺" },
+  { label: "Jewellery", icon: "💎" },
+  { label: "Decor", icon: "🪔" },
+  { label: "Textile", icon: "🧵" },
 ];
 
-const Home = () => {
+export default function Home() {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const [products, setProducts] = useState([]);
   const [featured, setFeatured] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [search, setSearch] = useState("");
   const [activeCategory, setActiveCategory] = useState(
     searchParams.get("category") || "All",
   );
   const [sort, setSort] = useState("");
+  const [search, setSearch] = useState(searchParams.get("search") || "");
   const [wishlistIds, setWishlistIds] = useState([]);
   const [pagination, setPagination] = useState({});
   const [page, setPage] = useState(1);
@@ -41,10 +47,9 @@ const Home = () => {
     fetchFeatured();
     if (user?.role === "buyer") fetchWishlist();
   }, [user]);
-
   useEffect(() => {
     fetchProducts();
-  }, [activeCategory, sort, page]);
+  }, [activeCategory, sort, page, search]);
 
   const fetchFeatured = async () => {
     try {
@@ -52,22 +57,19 @@ const Home = () => {
       setFeatured(data.products);
     } catch {}
   };
-
   const fetchWishlist = async () => {
     try {
       const { data } = await getWishlist();
       setWishlistIds(data.wishlist?.products?.map((p) => p._id || p) || []);
     } catch {}
   };
-
   const fetchProducts = async () => {
     setLoading(true);
     try {
-      const params = { page, limit: 12 };
+      const params = { page, limit: 16 };
       if (activeCategory !== "All") params.category = activeCategory;
       if (sort) params.sort = sort;
       if (search) params.search = search;
-
       const { data } = await getProducts(params);
       setProducts(data.products);
       setPagination(data.pagination);
@@ -76,12 +78,6 @@ const Home = () => {
       setLoading(false);
     }
   };
-
-  const handleSearch = (e) => {
-    e.preventDefault();
-    fetchProducts();
-  };
-
   const handleWishlistToggle = async (productId) => {
     if (!user) {
       navigate("/login");
@@ -98,172 +94,143 @@ const Home = () => {
   };
 
   return (
-    <div className="home-page">
-      <Navbar />
-
-      {/* Hero Section */}
-      <section className="hero">
-        <div className="hero-bg"></div>
-        <div className="container hero-content">
-          <div className="hero-text">
-            <p className="hero-tag">✦ Authentic Indian Craftsmanship</p>
-            <h1 className="hero-title">
-              Discover Handmade
-              <br />
-              <span>Treasures</span>
-            </h1>
-            <p className="hero-subtitle">
-              Unique handicrafts crafted by skilled artisans across India.
-              <br />
-              Every piece tells a story.
-            </p>
-            <div className="hero-actions">
-              <button
-                className="btn btn-primary btn-lg"
-                onClick={() =>
-                  document
-                    .getElementById("products-section")
-                    .scrollIntoView({ behavior: "smooth" })
-                }
-              >
-                Shop Now <FiArrowRight />
-              </button>
-              {!user && (
-                <button
-                  className="btn btn-outline btn-lg"
-                  onClick={() => navigate("/register?role=seller")}
-                >
-                  Become a Seller
-                </button>
-              )}
-            </div>
-          </div>
-          <div className="hero-image">
-            <img
-              src="https://images.unsplash.com/photo-1590736969955-71cc94901144?w=600"
-              alt="Handicrafts"
-            />
-            <div className="hero-badge">
-              <strong>500+</strong>
-              <span>Artisans</span>
-            </div>
-          </div>
-        </div>
-
-        <div className="hero-stats">
+    <div>
+      <Navbar
+        onSearch={(q) => {
+          setSearch(q);
+          setPage(1);
+        }}
+      />
+      <div style={{ paddingTop: "var(--nav-h)" }}>
+        {/* Hero */}
+        <section className="hero">
           <div className="container">
-            <div className="stats-row">
-              <div className="hero-stat">
-                <strong>10,000+</strong>
-                <span>Products</span>
+            <div className="hero-inner">
+              <div className="hero-text">
+                <div className="hero-tag">✦ Authentic Indian Craftsmanship</div>
+                <h1 className="hero-title">
+                  Discover Handmade
+                  <br />
+                  <em>Treasures</em>
+                </h1>
+                <p className="hero-sub">
+                  Unique handicrafts crafted by skilled artisans across India.
+                  Each piece carries a story, a tradition, and a soul.
+                </p>
+                <div className="hero-btns">
+                  <button
+                    className="hero-btn-primary"
+                    onClick={() =>
+                      document
+                        .getElementById("products")
+                        .scrollIntoView({ behavior: "smooth" })
+                    }
+                  >
+                    Shop Now <FiArrowRight />
+                  </button>
+                  {!user && (
+                    <Link
+                      to="/register?role=seller"
+                      className="hero-btn-outline"
+                    >
+                      Sell Your Crafts
+                    </Link>
+                  )}
+                </div>
+                <div className="hero-stats">
+                  <div className="hero-stat">
+                    <strong>10K+</strong>
+                    <span>Products</span>
+                  </div>
+                  <div className="hero-stat">
+                    <strong>500+</strong>
+                    <span>Artisans</span>
+                  </div>
+                  <div className="hero-stat">
+                    <strong>50K+</strong>
+                    <span>Customers</span>
+                  </div>
+                </div>
               </div>
-              <div className="hero-stat">
-                <strong>500+</strong>
-                <span>Artisans</span>
+              <div className="hero-visual">
+                <div className="hero-img-wrap">
+                  <img
+                    src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQxA3PgwLHE8WqSaG7OYDZkpKljPhV0sXzNqg&s"
+                    alt="Handicrafts"
+                  />
+                </div>
+                <div className="hero-badge">
+                  <div className="hero-badge-icon">🏆</div>
+                  <div>
+                    <strong>100% Genuine</strong>
+                    <span>Verified Artisans</span>
+                  </div>
+                </div>
               </div>
-              <div className="hero-stat">
-                <strong>50,000+</strong>
-                <span>Happy Customers</span>
-              </div>
-              <div className="hero-stat">
-                <strong>100%</strong>
-                <span>Handmade</span>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Featured Products */}
-      {featured.length > 0 && (
-        <section className="featured-section">
-          <div className="container">
-            <div className="section-header">
-              <h2>Featured Crafts</h2>
-              <p>Handpicked by our curators</p>
-            </div>
-            <div className="products-grid">
-              {featured.slice(0, 4).map((p) => (
-                <ProductCard
-                  key={p._id}
-                  product={p}
-                  onWishlistToggle={
-                    user?.role === "buyer" ? handleWishlistToggle : undefined
-                  }
-                  inWishlist={wishlistIds.includes(p._id)}
-                />
-              ))}
             </div>
           </div>
         </section>
-      )}
 
-      {/* Category Pills */}
-      <section className="categories-section">
-        <div className="container">
-          <div className="category-pills">
-            {CATEGORIES.map((cat) => (
+        {/* Trust Bar */}
+        <div className="trust-bar">
+          <div className="container">
+            <div className="trust-items">
+              <div className="trust-item">
+                <FiTruck />
+                <span>Free delivery above ₹500</span>
+              </div>
+              <div className="trust-item">
+                <FiShield />
+                <span>Secure payments</span>
+              </div>
+              <div className="trust-item">
+                <FiRefreshCw />
+                <span>Easy returns</span>
+              </div>
+              <div className="trust-item">
+                <FiAward />
+                <span>Verified artisans</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Category Strip */}
+        <div className="cat-strip">
+          <div className="cat-strip-inner">
+            {CATS.map((c) => (
               <button
-                key={cat}
-                className={`category-pill ${activeCategory === cat ? "active" : ""}`}
+                key={c.label}
+                className={`cat-btn ${activeCategory === c.label ? "active" : ""}`}
                 onClick={() => {
-                  setActiveCategory(cat);
+                  setActiveCategory(c.label);
                   setPage(1);
                 }}
               >
-                {cat}
+                <span className="cat-icon">{c.icon}</span> {c.label}
               </button>
             ))}
           </div>
         </div>
-      </section>
 
-      {/* All Products */}
-      <section className="products-section" id="products-section">
-        <div className="container">
-          <div className="products-header">
-            <h2>All Products</h2>
-            <div className="products-controls">
-              <form onSubmit={handleSearch} className="search-form">
-                <FiSearch className="search-icon" />
-                <input
-                  type="text"
-                  placeholder="Search crafts..."
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                  className="search-input"
-                />
-                <button type="submit" className="btn btn-primary btn-sm">
-                  Search
+        {/* Featured */}
+        {featured.length > 0 && !search && (
+          <section className="home-section home-section-alt">
+            <div className="container">
+              <div className="section-head">
+                <h2>Featured Picks</h2>
+                <button
+                  onClick={() =>
+                    document
+                      .getElementById("products")
+                      .scrollIntoView({ behavior: "smooth" })
+                  }
+                >
+                  View all →
                 </button>
-              </form>
-              <select
-                value={sort}
-                onChange={(e) => setSort(e.target.value)}
-                className="sort-select form-control"
-              >
-                <option value="">Sort: Latest</option>
-                <option value="price_asc">Price: Low to High</option>
-                <option value="price_desc">Price: High to Low</option>
-                <option value="rating">Top Rated</option>
-              </select>
-            </div>
-          </div>
-
-          {loading ? (
-            <div className="loading-spinner">
-              <div className="spinner"></div>
-            </div>
-          ) : products.length === 0 ? (
-            <div className="empty-state">
-              <div className="icon">🎨</div>
-              <h3>No products found</h3>
-              <p>Try a different search or category</p>
-            </div>
-          ) : (
-            <>
+              </div>
               <div className="products-grid">
-                {products.map((p) => (
+                {featured.slice(0, 4).map((p) => (
                   <ProductCard
                     key={p._id}
                     product={p}
@@ -274,57 +241,145 @@ const Home = () => {
                   />
                 ))}
               </div>
+            </div>
+          </section>
+        )}
 
-              {pagination.pages > 1 && (
-                <div className="pagination">
-                  {Array.from(
-                    { length: pagination.pages },
-                    (_, i) => i + 1,
-                  ).map((p) => (
-                    <button
-                      key={p}
-                      className={`page-btn ${page === p ? "active" : ""}`}
-                      onClick={() => setPage(p)}
-                    >
-                      {p}
-                    </button>
+        {/* All Products */}
+        <section className="home-section" id="products">
+          <div className="container">
+            <div className="filter-bar">
+              <h2>
+                {activeCategory === "All" ? "All Products" : activeCategory}
+                {search && (
+                  <span
+                    style={{
+                      fontWeight: 400,
+                      fontSize: "0.9rem",
+                      color: "var(--ink-4)",
+                      marginLeft: 8,
+                    }}
+                  >
+                    for "{search}"
+                  </span>
+                )}
+              </h2>
+              <select
+                className="filter-select"
+                value={sort}
+                onChange={(e) => setSort(e.target.value)}
+              >
+                <option value="">Sort: Newest</option>
+                <option value="price_asc">Price: Low → High</option>
+                <option value="price_desc">Price: High → Low</option>
+                <option value="rating">Top Rated</option>
+              </select>
+            </div>
+
+            {loading ? (
+              <div className="loading-spinner">
+                <div className="spinner"></div>
+              </div>
+            ) : products.length === 0 ? (
+              <div className="empty-state">
+                <div className="es-icon">🎨</div>
+                <h3>No products found</h3>
+                <p>Try a different category or search term</p>
+                <button
+                  className="btn btn-primary"
+                  onClick={() => {
+                    setSearch("");
+                    setActiveCategory("All");
+                  }}
+                >
+                  Clear filters
+                </button>
+              </div>
+            ) : (
+              <>
+                <div className="products-grid">
+                  {products.map((p) => (
+                    <ProductCard
+                      key={p._id}
+                      product={p}
+                      onWishlistToggle={
+                        user?.role === "buyer"
+                          ? handleWishlistToggle
+                          : undefined
+                      }
+                      inWishlist={wishlistIds.includes(p._id)}
+                    />
                   ))}
                 </div>
-              )}
-            </>
-          )}
-        </div>
-      </section>
+                {pagination.pages > 1 && (
+                  <div className="pagination">
+                    {Array.from(
+                      { length: pagination.pages },
+                      (_, i) => i + 1,
+                    ).map((p) => (
+                      <button
+                        key={p}
+                        className={`page-btn ${page === p ? "active" : ""}`}
+                        onClick={() => setPage(p)}
+                      >
+                        {p}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </>
+            )}
+          </div>
+        </section>
 
-      {/* Footer */}
-      <footer className="footer">
-        <div className="container">
-          <div className="footer-content">
-            <div>
-              <h3>✦ E-Handicrafts</h3>
-              <p>Connecting artisans with art lovers across India.</p>
+        {/* Footer */}
+        <footer className="footer">
+          <div className="container">
+            <div className="footer-grid">
+              <div className="footer-brand">
+                <h3>✦ E-Handicrafts</h3>
+                <p>
+                  Connecting India's finest artisans with craft lovers
+                  worldwide. Every purchase supports a family.
+                </p>
+              </div>
+              <div className="footer-col">
+                <h4>Shop</h4>
+                {[
+                  "Wood Crafts",
+                  "Pottery",
+                  "Jewellery",
+                  "Decor",
+                  "Textile",
+                ].map((c) => (
+                  <a
+                    key={c}
+                    href="#products"
+                    onClick={() => setActiveCategory(c)}
+                  >
+                    {c}
+                  </a>
+                ))}
+              </div>
+              <div className="footer-col">
+                <h4>Account</h4>
+                <Link to="/login">Sign In</Link>
+                <Link to="/register">Register</Link>
+                <Link to="/orders">My Orders</Link>
+                <Link to="/wishlist">Wishlist</Link>
+              </div>
+              <div className="footer-col">
+                <h4>Sell</h4>
+                <Link to="/register?role=seller">Become a Seller</Link>
+                <Link to="/seller">Seller Dashboard</Link>
+              </div>
             </div>
-            <div>
-              <h4>Quick Links</h4>
-              <a href="/">Home</a>
-              <a href="/register">Become a Seller</a>
-            </div>
-            <div>
-              <h4>Categories</h4>
-              {CATEGORIES.slice(1).map((c) => (
-                <a key={c} href={`/?category=${c}`}>
-                  {c}
-                </a>
-              ))}
+            <div className="footer-bottom">
+              © 2024 E-Handicrafts. All rights reserved.
             </div>
           </div>
-          <div className="footer-bottom">
-            <p>© 2024 E-Handicrafts. All rights reserved.</p>
-          </div>
-        </div>
-      </footer>
+        </footer>
+      </div>
     </div>
   );
-};
-
-export default Home;
+}

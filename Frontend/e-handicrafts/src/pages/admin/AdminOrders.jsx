@@ -3,60 +3,51 @@ import { FiShoppingBag, FiSearch } from 'react-icons/fi';
 import AdminSidebar from '../../components/admin/AdminSidebar';
 import { getAllOrders, updateOrderStatus } from '../../services/api';
 import toast from 'react-hot-toast';
-import '../../components/common/Sidebar.css';
 import '../seller/ProductForm.css';
 
-const statusColors = {
-  placed: 'badge-info', confirmed: 'badge-primary', processing: 'badge-warning',
-  shipped: 'badge-warning', delivered: 'badge-success', cancelled: 'badge-danger',
+const SB = {
+  placed: 'badge-blue', confirmed: 'badge-blue',
+  processing: 'badge-gold', shipped: 'badge-gold',
+  delivered: 'badge-green', cancelled: 'badge-red',
 };
+const ALL_STATUSES = ['placed','confirmed','processing','shipped','delivered','cancelled'];
 
-const ALL_STATUSES = ['placed', 'confirmed', 'processing', 'shipped', 'delivered', 'cancelled'];
-
-const AdminOrders = () => {
+export default function AdminOrders() {
   const [orders, setOrders] = useState([]);
   const [filtered, setFiltered] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
-  const [statusFilter, setStatusFilter] = useState('all');
+  const [statusF, setStatusF] = useState('all');
 
   useEffect(() => {
     getAllOrders()
-      .then(({ data }) => {
-        setOrders(data.orders);
-        setFiltered(data.orders);
-      })
+      .then(({ data }) => { setOrders(data.orders); setFiltered(data.orders); })
       .finally(() => setLoading(false));
   }, []);
 
   useEffect(() => {
-    let result = orders;
-    if (statusFilter !== 'all') result = result.filter((o) => o.orderStatus === statusFilter);
+    let r = orders;
+    if (statusF !== 'all') r = r.filter(o => o.orderStatus === statusF);
     if (search) {
       const q = search.toLowerCase();
-      result = result.filter(
-        (o) => o._id.toLowerCase().includes(q) || o.user?.name?.toLowerCase().includes(q) || o.user?.email?.toLowerCase().includes(q)
+      r = r.filter(o =>
+        o._id.toLowerCase().includes(q) ||
+        o.user?.name?.toLowerCase().includes(q) ||
+        o.user?.email?.toLowerCase().includes(q)
       );
     }
-    setFiltered(result);
-  }, [search, statusFilter, orders]);
+    setFiltered(r);
+  }, [search, statusF, orders]);
 
-  const handleStatusUpdate = async (orderId, status) => {
+  const handleStatus = async (orderId, status) => {
     try {
       const { data } = await updateOrderStatus(orderId, { status });
-      setOrders(orders.map((o) => o._id === orderId ? data.order : o));
-      toast.success(`Order updated to ${status}`);
-    } catch {
-      toast.error('Failed to update');
-    }
+      setOrders(o => o.map(x => x._id === orderId ? data.order : x));
+      toast.success(`Order marked as ${status}`);
+    } catch { toast.error('Failed to update'); }
   };
 
-  // Summary counts
-  const counts = ALL_STATUSES.reduce((acc, s) => {
-    acc[s] = orders.filter((o) => o.orderStatus === s).length;
-    return acc;
-  }, {});
-  const totalRevenue = orders.filter((o) => o.orderStatus === 'delivered').reduce((sum, o) => sum + o.grandTotal, 0);
+  const revenue = orders.filter(o => o.orderStatus === 'delivered').reduce((s, o) => s + o.grandTotal, 0);
 
   return (
     <div className="dashboard-layout">
@@ -65,39 +56,39 @@ const AdminOrders = () => {
         <h1 className="dashboard-title">Manage Orders</h1>
 
         {/* Quick stats */}
-        <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', marginBottom: '20px' }}>
+        <div style={{ display: 'flex', gap: 10, marginBottom: 20, flexWrap: 'wrap' }}>
           {[
-            { label: 'Total Orders', value: orders.length, bg: 'var(--secondary-light)', color: 'var(--secondary)' },
-            { label: 'Delivered', value: counts.delivered || 0, bg: '#d4edda', color: '#155724' },
-            { label: 'Pending/Processing', value: (counts.placed || 0) + (counts.confirmed || 0) + (counts.processing || 0), bg: '#fff3cd', color: '#856404' },
-            { label: 'Revenue', value: `₹${totalRevenue.toLocaleString()}`, bg: 'var(--primary-light)', color: 'var(--primary)' },
-          ].map((s) => (
-            <div key={s.label} style={{ padding: '12px 20px', borderRadius: 'var(--radius-sm)', background: s.bg, color: s.color, minWidth: '150px' }}>
-              <p style={{ fontSize: '1.3rem', fontWeight: 700 }}>{s.value}</p>
-              <p style={{ fontSize: '0.78rem', opacity: 0.8 }}>{s.label}</p>
+            { label: 'Total',     value: orders.length,                                              bg: 'var(--surface-3)',   color: 'var(--ink-2)' },
+            { label: 'Delivered', value: orders.filter(o => o.orderStatus === 'delivered').length,   bg: 'var(--green-light)', color: 'var(--green)' },
+            { label: 'Active',    value: orders.filter(o => !['delivered','cancelled'].includes(o.orderStatus)).length, bg: 'var(--gold-light)', color: '#92620a' },
+            { label: 'Cancelled', value: orders.filter(o => o.orderStatus === 'cancelled').length,   bg: '#fde8e8',            color: 'var(--brand)' },
+            { label: 'Revenue',   value: `₹${revenue.toLocaleString('en-IN')}`,                     bg: 'var(--brand-light)', color: 'var(--brand)' },
+          ].map(s => (
+            <div key={s.label} style={{ padding: '10px 18px', borderRadius: 'var(--r-md)', background: s.bg, color: s.color, minWidth: 110 }}>
+              <p style={{ fontWeight: 800, fontSize: s.label === 'Revenue' ? '1rem' : '1.3rem', fontFamily: 'var(--font-display)' }}>{s.value}</p>
+              <p style={{ fontSize: '0.72rem', fontWeight: 600 }}>{s.label}</p>
             </div>
           ))}
         </div>
 
         {/* Filters */}
-        <div style={{ display: 'flex', gap: '12px', marginBottom: '20px', flexWrap: 'wrap', alignItems: 'center' }}>
+        <div className="filter-row">
           <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
-            <FiSearch style={{ position: 'absolute', left: '10px', color: 'var(--text-muted)' }} />
-            <input className="form-control" style={{ paddingLeft: '32px', width: '240px' }}
-              placeholder="Search by order ID or customer..."
-              value={search} onChange={(e) => setSearch(e.target.value)} />
+            <FiSearch style={{ position: 'absolute', left: 10, color: 'var(--ink-5)', fontSize: '0.9rem' }} />
+            <input className="form-control" style={{ paddingLeft: 32, width: 260 }}
+              placeholder="Search by order ID or customer…"
+              value={search} onChange={e => setSearch(e.target.value)} />
           </div>
-          <select className="form-control" style={{ width: 'auto' }} value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
+          <select className="form-control" style={{ width: 'auto' }}
+            value={statusF} onChange={e => setStatusF(e.target.value)}>
             <option value="all">All Status</option>
-            {ALL_STATUSES.map((s) => <option key={s} value={s}>{s.charAt(0).toUpperCase() + s.slice(1)}</option>)}
+            {ALL_STATUSES.map(s => <option key={s} value={s}>{s.charAt(0).toUpperCase() + s.slice(1)}</option>)}
           </select>
-          <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>{filtered.length} orders</span>
+          <span className="filter-count">{filtered.length} orders</span>
         </div>
 
-        {loading ? (
-          <div className="loading-spinner"><div className="spinner"></div></div>
-        ) : (
-          <div className="card" style={{ overflow: 'hidden' }}>
+        {loading ? <div className="loading-spinner"><div className="spinner"></div></div> : (
+          <div className="table-wrap">
             <table className="data-table">
               <thead>
                 <tr>
@@ -112,50 +103,48 @@ const AdminOrders = () => {
                 </tr>
               </thead>
               <tbody>
-                {filtered.map((order) => (
-                  <tr key={order._id}>
-                    <td><code style={{ fontSize: '0.78rem', background: 'var(--bg)', padding: '2px 6px', borderRadius: '4px' }}>#{order._id.slice(-8).toUpperCase()}</code></td>
+                {filtered.map(o => (
+                  <tr key={o._id}>
                     <td>
-                      <div>
-                        <p style={{ fontWeight: 600, fontSize: '0.875rem' }}>{order.user?.name}</p>
-                        <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{order.user?.email}</p>
-                      </div>
+                      <code style={{ fontSize: '0.75rem', background: 'var(--surface-2)', padding: '3px 7px', borderRadius: 4, letterSpacing: '0.3px' }}>
+                        #{o._id.slice(-8).toUpperCase()}
+                      </code>
                     </td>
-                    <td style={{ fontSize: '0.85rem' }}>{order.items?.length} item(s)</td>
-                    <td style={{ fontWeight: 700 }}>₹{order.grandTotal?.toLocaleString()}</td>
                     <td>
-                      <span className={`badge ${order.paymentStatus === 'paid' ? 'badge-success' : 'badge-warning'}`}>
-                        {order.paymentMethod} · {order.paymentStatus}
+                      <p className="tbl-name">{o.user?.name}</p>
+                      <p className="tbl-sub">{o.user?.email}</p>
+                    </td>
+                    <td style={{ fontSize: '0.85rem' }}>{o.items?.length}</td>
+                    <td style={{ fontWeight: 700 }}>₹{o.grandTotal?.toLocaleString('en-IN')}</td>
+                    <td>
+                      <span className={`badge ${o.paymentStatus === 'paid' ? 'badge-green' : 'badge-gold'}`} style={{ fontSize: '0.68rem' }}>
+                        {o.paymentMethod} · {o.paymentStatus}
                       </span>
                     </td>
-                    <td style={{ fontSize: '0.82rem' }}>{new Date(order.createdAt).toLocaleDateString('en-IN')}</td>
-                    <td>
-                      <span className={`badge ${statusColors[order.orderStatus]}`}>
-                        {order.orderStatus}
-                      </span>
+                    <td style={{ fontSize: '0.78rem', color: 'var(--ink-4)', whiteSpace: 'nowrap' }}>
+                      {new Date(o.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
                     </td>
+                    <td><span className={`badge ${SB[o.orderStatus]}`}>{o.orderStatus}</span></td>
                     <td>
-                      {!['delivered', 'cancelled'].includes(order.orderStatus) ? (
-                        <select className="form-control" style={{ padding: '4px 8px', fontSize: '0.8rem', width: 'auto' }}
-                          value={order.orderStatus}
-                          onChange={(e) => handleStatusUpdate(order._id, e.target.value)}>
-                          <option value={order.orderStatus} disabled>Change</option>
-                          {ALL_STATUSES.filter((s) => s !== order.orderStatus && s !== 'placed').map((s) => (
+                      {!['delivered','cancelled'].includes(o.orderStatus) ? (
+                        <select className="form-control" style={{ padding: '5px 8px', fontSize: '0.78rem', width: 'auto' }}
+                          value={o.orderStatus}
+                          onChange={e => handleStatus(o._id, e.target.value)}>
+                          <option value={o.orderStatus} disabled>Change…</option>
+                          {ALL_STATUSES.filter(s => s !== o.orderStatus && s !== 'placed').map(s => (
                             <option key={s} value={s}>{s.charAt(0).toUpperCase() + s.slice(1)}</option>
                           ))}
                         </select>
-                      ) : (
-                        <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>—</span>
-                      )}
+                      ) : <span style={{ fontSize: '0.75rem', color: 'var(--ink-5)' }}>—</span>}
                     </td>
                   </tr>
                 ))}
               </tbody>
             </table>
             {filtered.length === 0 && (
-              <div className="empty-state" style={{ padding: '40px' }}>
-                <FiShoppingBag size={36} />
-                <p>No orders found</p>
+              <div className="empty-state" style={{ padding: '40px 0' }}>
+                <div className="es-icon"><FiShoppingBag /></div>
+                <h3>No orders found</h3>
               </div>
             )}
           </div>
@@ -163,6 +152,4 @@ const AdminOrders = () => {
       </main>
     </div>
   );
-};
-
-export default AdminOrders;
+}

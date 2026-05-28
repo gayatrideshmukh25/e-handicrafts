@@ -1,74 +1,48 @@
-import React, { useEffect, useState } from "react";
-import { FiHeart } from "react-icons/fi";
-import { Link } from "react-router-dom";
-import Navbar from "../../components/common/Navbar";
-import ProductCard from "../../components/common/ProductCard";
-import { getWishlist, toggleWishlist } from "../../services/api";
-import toast from "react-hot-toast";
+import React, { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
+import { FiHeart } from 'react-icons/fi';
+import Navbar from '../../components/common/Navbar';
+import ProductCard from '../../components/common/ProductCard';
+import { getWishlist, toggleWishlist } from '../../services/api';
+import toast from 'react-hot-toast';
 
-const WishlistPage = () => {
+export default function WishlistPage() {
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    getWishlist()
-      .then(({ data }) => setProducts(data.wishlist?.products || []))
-      .finally(() => setLoading(false));
+    getWishlist().then(({ data }) => setProducts(data.wishlist?.products || [])).finally(() => setLoading(false));
   }, []);
 
   const handleRemove = async (productId) => {
     try {
       await toggleWishlist({ productId });
-      setProducts((prev) => prev.filter((p) => p._id !== productId));
-      toast.success("Removed from wishlist");
+      setProducts(prev => prev.filter(p => p._id !== productId));
+      toast.success('Removed from wishlist');
     } catch {}
   };
-
-  if (loading)
-    return (
-      <>
-        <Navbar />
-        <div className="loading-spinner">
-          <div className="spinner"></div>
-        </div>
-      </>
-    );
 
   return (
     <>
       <Navbar />
-      <div className="container fade-in" style={{ padding: "32px 24px 60px" }}>
-        <h1 style={{ fontSize: "1.6rem", marginBottom: "28px" }}>
-          My Wishlist
-        </h1>
-        {products.length === 0 ? (
-          <div className="empty-state">
-            <FiHeart size={48} />
-            <h3>Your wishlist is empty</h3>
-            <p>Save items you love to your wishlist</p>
-            <Link
-              to="/"
-              className="btn btn-primary"
-              style={{ marginTop: "16px" }}
-            >
-              Explore Products
-            </Link>
-          </div>
-        ) : (
-          <div className="products-grid">
-            {products.map((p) => (
-              <ProductCard
-                key={p._id}
-                product={p}
-                onWishlistToggle={handleRemove}
-                inWishlist={true}
-              />
-            ))}
-          </div>
-        )}
+      <div style={{ paddingTop: 'var(--nav-h)', background: 'var(--surface-2)', minHeight: '100vh' }}>
+        <div className="container fade-in" style={{ padding: '28px 20px 60px' }}>
+          <h1 style={{ fontSize: '1.5rem', fontWeight: 800, marginBottom: 24 }}>My Wishlist {products.length > 0 && <span style={{ fontSize: '1rem', fontWeight: 400, color: 'var(--ink-4)' }}>({products.length} items)</span>}</h1>
+          {loading ? <div className="loading-spinner"><div className="spinner"></div></div>
+          : products.length === 0 ? (
+            <div className="empty-state">
+              <div className="es-icon"><FiHeart /></div>
+              <h3>Your wishlist is empty</h3>
+              <p>Save items you love to find them easily later</p>
+              <Link to="/" className="btn btn-primary">Explore Products</Link>
+            </div>
+          ) : (
+            <div className="products-grid">
+              {products.map(p => <ProductCard key={p._id} product={p} onWishlistToggle={handleRemove} inWishlist={true} />)}
+            </div>
+          )}
+        </div>
       </div>
     </>
   );
-};
-
-export default WishlistPage;
+}

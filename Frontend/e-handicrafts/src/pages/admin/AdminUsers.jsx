@@ -1,90 +1,95 @@
 import React, { useEffect, useState } from 'react';
-import { FiUsers, FiSlash, FiTrash2, FiCheckCircle } from 'react-icons/fi';
+import { FiUsers, FiSearch, FiSlash, FiTrash2, FiCheckCircle } from 'react-icons/fi';
 import AdminSidebar from '../../components/admin/AdminSidebar';
 import { getAdminUsers, toggleBlockUser, deleteUser } from '../../services/api';
 import toast from 'react-hot-toast';
-import '../../components/common/Sidebar.css';
 import '../seller/ProductForm.css';
 
-const AdminUsers = () => {
+export default function AdminUsers() {
   const [users, setUsers] = useState([]);
+  const [filtered, setFiltered] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState('');
 
   useEffect(() => {
-    getAdminUsers()
-      .then(({ data }) => setUsers(data.users))
-      .finally(() => setLoading(false));
+    getAdminUsers().then(({ data }) => { setUsers(data.users); setFiltered(data.users); }).finally(() => setLoading(false));
   }, []);
+
+  useEffect(() => {
+    const q = search.toLowerCase();
+    setFiltered(users.filter(u => u.name.toLowerCase().includes(q) || u.email.toLowerCase().includes(q)));
+  }, [search, users]);
 
   const handleBlock = async (id) => {
     try {
       const { data } = await toggleBlockUser(id);
-      setUsers(users.map((u) => u._id === id ? data.user : u));
+      setUsers(u => u.map(x => x._id === id ? data.user : x));
       toast.success(data.message);
-    } catch {}
+    } catch { toast.error('Action failed'); }
   };
 
   const handleDelete = async (id) => {
-    if (!window.confirm('Delete this user?')) return;
+    if (!window.confirm('Permanently delete this user?')) return;
     try {
       await deleteUser(id);
-      setUsers(users.filter((u) => u._id !== id));
+      setUsers(u => u.filter(x => x._id !== id));
       toast.success('User deleted');
-    } catch {}
+    } catch { toast.error('Failed to delete'); }
   };
 
   return (
     <div className="dashboard-layout">
       <AdminSidebar />
       <main className="dashboard-content">
-        <h1 className="dashboard-title">Manage Users</h1>
+        <div className="page-hdr">
+          <h1>Manage Users</h1>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'var(--surface)', border: '1px solid var(--line)', borderRadius: 'var(--r-sm)', padding: '8px 14px', fontSize: '0.82rem', color: 'var(--ink-4)' }}>
+            <FiUsers /> {users.length} buyers
+          </div>
+        </div>
 
-        {loading ? (
-          <div className="loading-spinner"><div className="spinner"></div></div>
-        ) : (
-          <div className="card" style={{ overflow: 'hidden' }}>
-            <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--text-muted)' }}>
-              <FiUsers /> <span>{users.length} buyers registered</span>
-            </div>
+        <div className="filter-row">
+          <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+            <FiSearch style={{ position: 'absolute', left: 10, color: 'var(--ink-5)', fontSize: '0.9rem' }} />
+            <input className="form-control" style={{ paddingLeft: 32, width: 280 }} placeholder="Search by name or email…" value={search} onChange={e => setSearch(e.target.value)} />
+          </div>
+          <span className="filter-count">{filtered.length} results</span>
+        </div>
+
+        {loading ? <div className="loading-spinner"><div className="spinner"></div></div>
+        : (
+          <div className="table-wrap">
             <table className="data-table">
               <thead>
-                <tr>
-                  <th>User</th>
-                  <th>Email</th>
-                  <th>Joined</th>
-                  <th>Status</th>
-                  <th>Actions</th>
-                </tr>
+                <tr><th>User</th><th>Email</th><th>Joined</th><th>Status</th><th>Actions</th></tr>
               </thead>
               <tbody>
-                {users.map((user) => (
-                  <tr key={user._id}>
+                {filtered.map(u => (
+                  <tr key={u._id}>
                     <td>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                        <div style={{ width: '34px', height: '34px', borderRadius: '50%', background: 'var(--primary)', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: '0.85rem', flexShrink: 0 }}>
-                          {user.name?.[0]}
-                        </div>
-                        <span style={{ fontWeight: 600 }}>{user.name}</span>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                        <div className="tbl-avatar" style={{ background: u.isBlocked ? '#9ca3af' : 'var(--brand)' }}>{u.name?.[0]}</div>
+                        <span className="tbl-name">{u.name}</span>
                       </div>
                     </td>
-                    <td>{user.email}</td>
-                    <td>{new Date(user.createdAt).toLocaleDateString('en-IN')}</td>
+                    <td style={{ fontSize: '0.85rem', color: 'var(--ink-3)' }}>{u.email}</td>
+                    <td style={{ fontSize: '0.82rem', color: 'var(--ink-4)', whiteSpace: 'nowrap' }}>
+                      {new Date(u.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
+                    </td>
                     <td>
-                      <span className={`badge ${user.isBlocked ? 'badge-danger' : 'badge-success'}`}>
-                        {user.isBlocked ? 'Blocked' : 'Active'}
+                      <span className={`badge ${u.isBlocked ? 'badge-red' : 'badge-green'}`}>
+                        {u.isBlocked ? 'Blocked' : 'Active'}
                       </span>
                     </td>
                     <td>
-                      <div style={{ display: 'flex', gap: '8px' }}>
+                      <div className="tbl-actions">
                         <button
-                          className={`btn btn-sm ${user.isBlocked ? 'btn-secondary' : 'btn-outline'}`}
-                          onClick={() => handleBlock(user._id)}
-                          title={user.isBlocked ? 'Unblock' : 'Block'}
+                          className={`btn btn-sm ${u.isBlocked ? 'btn-success' : 'btn-outline'}`}
+                          onClick={() => handleBlock(u._id)}
                         >
-                          {user.isBlocked ? <FiCheckCircle /> : <FiSlash />}
-                          {user.isBlocked ? 'Unblock' : 'Block'}
+                          {u.isBlocked ? <><FiCheckCircle /> Unblock</> : <><FiSlash /> Block</>}
                         </button>
-                        <button className="btn btn-danger btn-sm" onClick={() => handleDelete(user._id)}>
+                        <button className="btn btn-danger btn-sm" onClick={() => handleDelete(u._id)}>
                           <FiTrash2 />
                         </button>
                       </div>
@@ -93,12 +98,15 @@ const AdminUsers = () => {
                 ))}
               </tbody>
             </table>
-            {users.length === 0 && <div className="empty-state" style={{ padding: '40px' }}><p>No buyers found</p></div>}
+            {filtered.length === 0 && (
+              <div className="empty-state" style={{ padding: '40px 0' }}>
+                <div className="es-icon"><FiUsers /></div>
+                <h3>No users found</h3>
+              </div>
+            )}
           </div>
         )}
       </main>
     </div>
   );
-};
-
-export default AdminUsers;
+}
