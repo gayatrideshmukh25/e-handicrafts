@@ -63,26 +63,24 @@ MongoDB + Mongoose
 
 E-Handicrafts/
 frontend/
-│
-├── assets/
-├── components/
-├── pages/
-│ ├── buyer/
-│ ├── seller/
-│ └── admin/
-├── context/
-├── services/
-├── styles/
+ assets/
+ components/
+ pages/
+ ── buyer/
+ ── seller/
+ ── admin/
+ context/
+ services/
+  styles/
 
 backend/
-│
-├── config/
-├── controllers/
-├── middleware/
-├── models/
-├── routes/
-├── uploads/
-├── utils/
+ config/
+ controllers/
+ middleware/
+ models/
+ routes/
+ uploads/
+ utils/
 
 ### ⚙️ Installation
 
