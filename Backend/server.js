@@ -2,7 +2,8 @@ const express = require("express");
 const cors = require("cors");
 const dotenv = require("dotenv");
 const connectDB = require("./config/db");
-
+const dns = require("dns");
+dns.setDefaultResultOrder("ipv4first");
 dotenv.config();
 connectDB();
 
@@ -13,10 +14,6 @@ app.use(
     origin: "http://localhost:5173",
     credentials: true,
   }),
-  // cors({
-  //   origin: process.env.CLIENT_URL || "http://localhost:3000",
-  //   credentials: true,
-  // }),
 );
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
